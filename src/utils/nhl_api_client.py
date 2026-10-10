@@ -25,7 +25,7 @@ URL_REPL_DATE = "{{DATE}}"
 
 NHL_API_BASE_URL = "https://api-web.nhle.com/v1"
 SCHEDULE_URL = f"{NHL_API_BASE_URL}/schedule/{URL_REPL_DATE}"
-LANDING_URL = f"{NHL_API_BASE_URL}/gamecenter/{URL_REPL_ID}/landing"
+LANDING_URL = f"{NHL_API_BASE_URL}/wsc/game-story/{URL_REPL_ID}"
 
 VIDEO_BASE_URL = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 VIDEO_URL = f"{VIDEO_BASE_URL}{URL_REPL_ID}"
@@ -65,6 +65,8 @@ DICT_KEY_SEASON_SERIES = 'seasonSeries'
 DICT_KEY_IN_INTERMISSION = 'inIntermission'
 DICT_KEY_GAME_STATE = 'gameState'
 DICT_KEY_DEFAULT = 'default'
+DICT_KEY_SCORE = 'score'
+DICT_KEY_SOG = 'sog'
 
 DICT_KEY_FIRST_NAME = 'firstName'
 DICT_KEY_LAST_NAME = 'lastName'
@@ -537,8 +539,6 @@ def parse_team_stats(landing: dict) -> dict:
     periods = parse_periods(landing)
     shootouts = parse_shootout(landing)
     out = {}
-    home_shots = 0
-    away_shots = 0
     home_fo_wins = 0.0
     away_fo_wins = 0.0
     home_pp = "0/0"
@@ -552,8 +552,8 @@ def parse_team_stats(landing: dict) -> dict:
     home_giveaways = 0
     away_giveaways = 0
 
-    home_goals = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_LINESCORE}.{DICT_KEY_TOTALS}.{DICT_KEY_HOME}", 0)
-    away_goals = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_LINESCORE}.{DICT_KEY_TOTALS}.{DICT_KEY_AWAY}", 0)
+    home_goals = pydash.get(landing, f"{DICT_KEY_HOME_TEAM}.{DICT_KEY_SCORE}", 0)
+    away_goals = pydash.get(landing, f"{DICT_KEY_AWAY_TEAM}.{DICT_KEY_SCORE}", 0)
 
     team_game_stats = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_TEAM_GAME_STATS}", {})
     for stat in team_game_stats:
