@@ -42,6 +42,8 @@ class Team:
 class TeamsEnumMeta(EnumMeta):
 
     def __getitem__(self, item):
+        if 'default' in item:
+            item = item['default']
         if item not in Teams.__members__:
             return Teams.ERR
         return super().__getitem__(item)
