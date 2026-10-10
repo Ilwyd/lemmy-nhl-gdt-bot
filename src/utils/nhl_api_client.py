@@ -510,9 +510,13 @@ def get_penalty_description(penalty_dictionary: dict) -> str:
         str: The description of the penalty
     """
     # TODO: add "served by" for applicable penalties
-    committed_by = pydash.get(penalty_dictionary, f"{DICT_KEY_COMMITTED_BY_PLAYER}", "")
+    committed_by_first_name = pydash.get(penalty_dictionary, f"{DICT_KEY_COMMITTED_BY_PLAYER}.{DICT_KEY_FIRST_NAME}.{DICT_KEY_DEFAULT}", "")
+    committed_by_last_name = pydash.get(penalty_dictionary, f"{DICT_KEY_COMMITTED_BY_PLAYER}.{DICT_KEY_LAST_NAME}.{DICT_KEY_DEFAULT}", "")
+    committed_by = f"{committed_by_first_name} {committed_by_last_name}"
     description_key = pydash.get(penalty_dictionary, f"{DICT_KEY_DESC_KEY}", "")
-    drawn_by = pydash.get(penalty_dictionary, f"{DICT_KEY_DRAWN_BY}", "")
+    drawn_by_first_name = pydash.get(penalty_dictionary, f"{DICT_KEY_DRAWN_BY}.{DICT_KEY_FIRST_NAME}.{DICT_KEY_DEFAULT}", "")
+    drawn_by_last_name = pydash.get(penalty_dictionary, f"{DICT_KEY_DRAWN_BY}.{DICT_KEY_LAST_NAME}.{DICT_KEY_DEFAULT}", "")
+    drawn_by = f"{drawn_by_first_name} {drawn_by_last_name}"
 
     out = f'{committed_by} {description_key}'
     if drawn_by:
