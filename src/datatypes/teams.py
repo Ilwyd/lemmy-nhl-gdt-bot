@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, EnumMeta
 
+DICT_KEY_DEFAULT = 'default'
 
 @dataclass
 class Team:
@@ -42,8 +43,8 @@ class Team:
 class TeamsEnumMeta(EnumMeta):
 
     def __getitem__(self, item):
-        if 'default' in item:
-            item = item['default']
+        if DICT_KEY_DEFAULT in item:
+            item = item[DICT_KEY_DEFAULT]
         if item not in Teams.__members__:
             return Teams.ERR
         return super().__getitem__(item)
