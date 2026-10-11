@@ -43,7 +43,7 @@ PENALTY_DETAILS_HEADER_ROW = [PERIOD, TIME, TEAM, TYPE, MIN, DESCRIPTION]
 START_TIME_HEADER_ROW = [PT, MT, CT, ET, AT]
 DAY_OVERVIEW_HEADER_ROW = [MATCH_UP, TIME, LINK]
 
-FOOTER_TEXT = "I am open source! Report issues, contribute, and fund me [on my GitHub page](https://github.com/dandroid126/lemmy-nhl-gdt-bot)!"
+FOOTER_TEXT = "I am open source! Report issues, contribute, and fund me [on my GitHub page](https://github.com/Ilwyd/lemmy-nhl-gdt-bot)!\n\nIf you notice any issues with this bot, please tag Custard@lemmy.world!"
 
 
 def get_title(game: Game) -> str:
