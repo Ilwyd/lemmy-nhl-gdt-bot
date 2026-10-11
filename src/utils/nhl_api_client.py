@@ -347,13 +347,13 @@ def parse_game_info(landing: dict) -> GameInfo:
         GameInfo: the parsed game info
     """
     current_period = ""
-    season_series = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_SEASON_SERIES}", [])
-    for game in season_series:
-        if pydash.get(game, DICT_KEY_ID, 0) == pydash.get(landing, DICT_KEY_ID, -1):
-            period_number = pydash.get(game, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_NUMBER}", 0)
-            period_type = pydash.get(game, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_PERIOD_TYPE}", DICT_VALUE_REG)
-            ot_periods = pydash.get(game, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_OT_PERIODS}", None)
-            current_period = get_period_ordinal(period_number, period_type, ot_periods)
+    # season_series = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_SEASON_SERIES}", [])
+    # for game in season_series:
+        # if pydash.get(game, DICT_KEY_ID, 0) == pydash.get(landing, DICT_KEY_ID, -1):
+    period_number = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_NUMBER}", 0)
+    period_type = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_PERIOD_TYPE}", DICT_VALUE_REG)
+    ot_periods = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_OT_PERIODS}", None)
+    current_period = get_period_ordinal(period_number, period_type, ot_periods)
     in_intermission = pydash.get(landing, f"{DICT_KEY_CLOCK}.{DICT_KEY_IN_INTERMISSION}", False)
     is_final = pydash.get(landing, f"{DICT_KEY_GAME_STATE}", "")
 
