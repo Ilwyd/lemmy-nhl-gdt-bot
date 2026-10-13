@@ -17,6 +17,7 @@ TAG = 'LemmyClient'
 DICT_KEY_POST_VIEW = 'post_view'
 DICT_KEY_POST = 'post'
 DICT_KEY_ID = 'id'
+DICT_KEY_BODY = 'body'
 
 REQUEST_TIMEOUT = 10
 
@@ -88,6 +89,13 @@ class LemmyClient:
         Returns:
             None
         """
+        curr_post = self.lemmy.post.get(post_id=post_id)
+        curr_post_body = pydash.get(curr_post, f"{DICT_KEY_POST_VIEW}.{DICT_KEY_POST}.{DICT_KEY_BODY}", "")
+
+        if body == curr_post_body:
+            LOGGER.i(TAG, "update_game_day_thread(): No change in game day thread body. Not editing the post.")
+            return
+
         self.lemmy.post.edit(post_id=post_id, name=title, body=body)
 
     def create_daily_thread(self, date: str, title: str, body: str) -> Optional[DailyThreadsRecord]:
@@ -121,6 +129,13 @@ class LemmyClient:
         Returns:
             None
         """
+        curr_post = self.lemmy.post.get(post_id=post_id)
+        curr_post_body = pydash.get(curr_post, f"{DICT_KEY_POST_VIEW}.{DICT_KEY_POST}.{DICT_KEY_BODY}", "")
+
+        if body == curr_post_body:
+            LOGGER.i(TAG, "update_daily_thread(): No change in daily thread body. Not editing the post.")
+            return
+
         self.lemmy.post.edit(post_id=post_id, name=title, body=body)
 
     def delete_post(self, post_id: int) -> Optional[dict]:
