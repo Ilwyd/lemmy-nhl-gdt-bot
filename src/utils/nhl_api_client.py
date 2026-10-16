@@ -25,7 +25,8 @@ URL_REPL_DATE = "{{DATE}}"
 
 NHL_API_BASE_URL = "https://api-web.nhle.com/v1"
 SCHEDULE_URL = f"{NHL_API_BASE_URL}/schedule/{URL_REPL_DATE}"
-LANDING_URL = f"{NHL_API_BASE_URL}/wsc/game-story/{URL_REPL_ID}"
+LANDING_URL = f"{NHL_API_BASE_URL}/gamecenter/{URL_REPL_ID}/landing"
+GAME_STORY_URL = f"{NHL_API_BASE_URL}/wsc/game-story/{URL_REPL_ID}"
 
 VIDEO_BASE_URL = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 VIDEO_URL = f"{VIDEO_BASE_URL}{URL_REPL_ID}"
@@ -154,6 +155,19 @@ def get_landing_url(game_id: int) -> str:
         raise IllegalArgumentException(TAG, "game_id must not be None")
     return LANDING_URL.replace(URL_REPL_ID, str(game_id))
 
+def get_game_story_url(game_id: int) -> str:
+    """
+        Gets the game story url
+
+        Args:
+            game_id: the ID of the game
+
+        Returns:
+            str: the game story URL
+        """
+    if game_id is None:
+        raise IllegalArgumentException(TAG, "game_id must not be None")
+    return GAME_STORY_URL.replace(URL_REPL_ID, str(game_id))
 
 def get_video_url(video_id: int) -> str:
     """
@@ -234,7 +248,8 @@ def get_games(schedule: list[Game]) -> list[Game]:
     games = []
     for game in schedule:
         landing = get_landing(game.id)
-        games.append(parse_game(landing))
+        game_story = get_game_story(game.id)
+        games.append(parse_game(landing, game_story))
     return games
 
 
@@ -261,6 +276,30 @@ def get_landing(game_id: int) -> dict:
         LOGGER.e(TAG, "get_landing(): A connection error occurred", e)
         landing = {}
     return landing
+
+def get_game_story(game_id: int) -> dict:
+    """
+    Gets the game story
+
+    Args:
+        game_id: the ID of the game
+
+    Returns:
+        dict: the game_story dictionary
+    """
+    if game_id is None:
+        raise IllegalArgumentException(TAG, "game_id must not be None")
+    url = get_game_story_url(game_id)
+    LOGGER.i(TAG, f"get_game_story(): url: {url}")
+    try:
+        game_story = json.loads(requests.get(url, timeout=REQUEST_TIMEOUT).text)
+    except requests.exceptions.Timeout as e:
+        LOGGER.e(TAG, "get_game_story(): a timeout occurred", e)
+        game_story = {}
+    except requests.exceptions.ConnectionError as e:
+        LOGGER.e(TAG, "get_game_story(): A connection error occurred", e)
+        game_story = {}
+    return game_story
 
 
 def parse_periods(landing: dict) -> dict:
@@ -315,17 +354,17 @@ def get_period_ordinal(period_number: int, period_type: str, ot_periods: Optiona
         return ""
 
 
-def parse_shootout(landing: dict) -> dict:
+def parse_shootout(game_story: dict) -> dict:
     """
     Parses the shootout
 
     Args:
-        landing: the landing dictionary
+        game_story: the landing dictionary
 
     Returns:
         dict: the parsed shootout
     """
-    shootout_info = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_LINESCORE}.{DICT_KEY_SHOOTOUT}", {})
+    shootout_info = pydash.get(game_story, f"{DICT_KEY_SUMMARY}.{DICT_KEY_LINESCORE}.{DICT_KEY_SHOOTOUT}", {})
     return {
         DICT_KEY_HOME: Shootout(scores=pydash.get(shootout_info, f"{DICT_KEY_HOME_CONVERSIONS}", 0),
                                 attempts=pydash.get(shootout_info, f"{DICT_KEY_HOME_ATTEMPTS}", 0),
@@ -336,33 +375,29 @@ def parse_shootout(landing: dict) -> dict:
     }
 
 
-def parse_game_info(landing: dict) -> GameInfo:
+def parse_game_info(game_story: dict) -> GameInfo:
     """
     Parses the game info
 
     Args:
-        landing: the landing dictionary
+        game_story: the game_story dictionary
 
     Returns:
         GameInfo: the parsed game info
     """
-    current_period = ""
-    # season_series = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_SEASON_SERIES}", [])
-    # for game in season_series:
-        # if pydash.get(game, DICT_KEY_ID, 0) == pydash.get(landing, DICT_KEY_ID, -1):
-    period_number = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_NUMBER}", 0)
-    period_type = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_PERIOD_TYPE}", DICT_VALUE_REG)
-    ot_periods = pydash.get(landing, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_OT_PERIODS}", None)
+    period_number = pydash.get(game_story, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_NUMBER}", 0)
+    period_type = pydash.get(game_story, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_PERIOD_TYPE}", DICT_VALUE_REG)
+    ot_periods = pydash.get(game_story, f"{DICT_KEY_PERIOD_DESCRIPTOR}.{DICT_KEY_OT_PERIODS}", None)
     current_period = get_period_ordinal(period_number, period_type, ot_periods)
-    in_intermission = pydash.get(landing, f"{DICT_KEY_CLOCK}.{DICT_KEY_IN_INTERMISSION}", False)
-    is_final = pydash.get(landing, f"{DICT_KEY_GAME_STATE}", "")
+    in_intermission = pydash.get(game_story, f"{DICT_KEY_CLOCK}.{DICT_KEY_IN_INTERMISSION}", False)
+    is_final = pydash.get(game_story, f"{DICT_KEY_GAME_STATE}", "")
 
     if is_final == GameState.FINAL.value or is_final == GameState.OFF.value:
         game_clock = GameState.FINAL.value
     elif in_intermission:
         game_clock = INTERMISSION_TIME_CLOCK
     else:
-        game_clock = pydash.get(landing, f"{DICT_KEY_CLOCK}.{DICT_KEY_TIME_REMAINING}", TIME_CLOCK_DEFAULT)
+        game_clock = pydash.get(game_story, f"{DICT_KEY_CLOCK}.{DICT_KEY_TIME_REMAINING}", TIME_CLOCK_DEFAULT)
 
     return GameInfo(
         current_period=current_period if current_period else "",
@@ -370,17 +405,17 @@ def parse_game_info(landing: dict) -> GameInfo:
     )
 
 
-def parse_goals(landing: dict) -> list[Goal]:
+def parse_goals(game_story: dict) -> list[Goal]:
     """
     Parses the goals
 
     Args:
-        landing: the landing dictionary
+        game_story: the game_story dictionary
 
     Returns:
         list[Goal]: the parsed goals
     """
-    periods = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_SCORING}", [])
+    periods = pydash.get(game_story, f"{DICT_KEY_SUMMARY}.{DICT_KEY_SCORING}", [])
     goals = []
     for period in periods:
         scoring_plays = pydash.get(period, f"{DICT_KEY_GOALS}", [])
@@ -526,18 +561,18 @@ def get_penalty_description(penalty_dictionary: dict) -> str:
     return out
 
 
-def parse_team_stats(landing: dict) -> dict:
+def parse_team_stats(game_story: dict) -> dict:
     """
     Parses the team stats
 
     Args:
-        landing: the landing dictionary
+        game_story: the landing dictionary
 
     Returns:
         dict: the parsed team stats
     """
-    periods = parse_periods(landing)
-    shootouts = parse_shootout(landing)
+    periods = parse_periods(game_story)
+    shootouts = parse_shootout(game_story)
     out = {}
     home_fo_wins = 0.0
     away_fo_wins = 0.0
@@ -554,10 +589,10 @@ def parse_team_stats(landing: dict) -> dict:
     home_giveaways = 0
     away_giveaways = 0
 
-    home_goals = pydash.get(landing, f"{DICT_KEY_HOME_TEAM}.{DICT_KEY_SCORE}", 0)
-    away_goals = pydash.get(landing, f"{DICT_KEY_AWAY_TEAM}.{DICT_KEY_SCORE}", 0)
+    home_goals = pydash.get(game_story, f"{DICT_KEY_HOME_TEAM}.{DICT_KEY_SCORE}", 0)
+    away_goals = pydash.get(game_story, f"{DICT_KEY_AWAY_TEAM}.{DICT_KEY_SCORE}", 0)
 
-    team_game_stats = pydash.get(landing, f"{DICT_KEY_SUMMARY}.{DICT_KEY_TEAM_GAME_STATS}", {})
+    team_game_stats = pydash.get(game_story, f"{DICT_KEY_SUMMARY}.{DICT_KEY_TEAM_GAME_STATS}", {})
     for stat in team_game_stats:
         category = pydash.get(stat, DICT_KEY_CATEGORY, "")
         match category:
@@ -652,22 +687,23 @@ def parse_scheduled_game(game: dict) -> Optional[Game]:
                 penalties=None)
 
 
-def parse_game(landing: dict) -> Optional[Game]:
+def parse_game(landing: dict, game_story: dict) -> Optional[Game]:
     """
     Parses the game
 
     Args:
         landing: the landing dictionary
+        game_story: the game_story dictionary
 
     Returns:
         Optional[Game]: the parsed game or None if it cannot be parsed
     """
-    team_stats = parse_team_stats(landing)
+    team_stats = parse_team_stats(game_story)
 
-    game_id = pydash.get(landing, f"{DICT_KEY_ID}", None)
-    away_team_abbr = pydash.get(landing, f"{DICT_KEY_AWAY_TEAM}.{DICT_KEY_ABBREV}", None)
-    home_team_abbr = pydash.get(landing, f"{DICT_KEY_HOME_TEAM}.{DICT_KEY_ABBREV}", None)
-    start_time = pydash.get(landing, f"{DICT_KEY_START_TIME_UTC}", None)
+    game_id = pydash.get(game_story, f"{DICT_KEY_ID}", None)
+    away_team_abbr = pydash.get(game_story, f"{DICT_KEY_AWAY_TEAM}.{DICT_KEY_ABBREV}", None)
+    home_team_abbr = pydash.get(game_story, f"{DICT_KEY_HOME_TEAM}.{DICT_KEY_ABBREV}", None)
+    start_time = pydash.get(game_story, f"{DICT_KEY_START_TIME_UTC}", None)
     end_time = None
     home_team_stats = pydash.get(team_stats, f"{DICT_KEY_HOME}", None)
     away_team_stats = pydash.get(team_stats, f"{DICT_KEY_AWAY}", None)
@@ -680,8 +716,8 @@ def parse_game(landing: dict) -> Optional[Game]:
                 home_team=Teams[home_team_abbr].value,
                 start_time=datetime_util.parse_datetime(start_time),
                 end_time=end_time,
-                game_info=parse_game_info(landing),
+                game_info=parse_game_info(game_story),
                 home_team_stats=home_team_stats,
                 away_team_stats=away_team_stats,
-                goals=parse_goals(landing),
+                goals=parse_goals(game_story),
                 penalties=parse_penalties(landing))

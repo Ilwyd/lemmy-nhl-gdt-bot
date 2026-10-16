@@ -96,6 +96,7 @@ class LemmyClient:
             LOGGER.i(TAG, "update_game_day_thread(): No change in game day thread body. Not editing the post.")
             return
 
+        LOGGER.i(TAG, f"update_game_day_thread(): Updating GDT {post_id}")
         self.lemmy.post.edit(post_id=post_id, name=title, body=body)
 
     def create_daily_thread(self, date: str, title: str, body: str) -> Optional[DailyThreadsRecord]:
@@ -136,6 +137,7 @@ class LemmyClient:
             LOGGER.i(TAG, "update_daily_thread(): No change in daily thread body. Not editing the post.")
             return
 
+        LOGGER.i(TAG, f"update_daily_thread(): Updating daily thread {post_id}")
         self.lemmy.post.edit(post_id=post_id, name=title, body=body)
 
     def delete_post(self, post_id: int) -> Optional[dict]:
